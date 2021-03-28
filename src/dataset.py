@@ -1,5 +1,25 @@
-import scipy.io
+import sys
+import torch
+import pickle as pkl
 import numpy as np 
+import networkx as nx
+import scipy.io
+import scipy.sparse as sp
+
+
+def sample_mask(idx, l):
+    """Create mask."""
+    mask = np.zeros(l)
+    mask[idx] = 1
+    return np.array(mask, dtype=np.bool)
+
+
+def parse_index_file(filename):
+    """Parse index file."""
+    index = []
+    for line in open(filename):
+        index.append(int(line.strip()))
+    return index
 
 def normalize(mx):
     """Row-normalize sparse matrix"""
@@ -10,7 +30,6 @@ def normalize(mx):
     mx = r_mat_inv.dot(mx)
     return mx
 
-
 def normalize_adj(adj):
     """Symmetrically normalize adjacency matrix."""
     adj = sp.coo_matrix(adj)
@@ -19,7 +38,6 @@ def normalize_adj(adj):
     d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
     d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
     return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
-
 
 def preprocess_adj(adj):
     """Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation."""
@@ -41,7 +59,6 @@ def accuracy(output, labels):
     correct = correct.sum()
     return correct / len(labels)
 
-
 class Dataset:
     def __init__(self,cfg):
         self.cfg=cfg  
@@ -51,15 +68,17 @@ class Dataset:
         names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
         objects = []
         for i in range(len(names)):
-             with open(self.cfg."data/ind.%s.%s"%(self.cfg.data_set, names[i]), 'rb') as f:
+            file="%s/ind.%s.%s"%(self.cfg.dataset_path,self.cfg.data_set, names[i])
+            with open(file, 'rb') as f:
                 if sys.version_info > (3, 0):
                     objects.append(pkl.load(f, encoding='latin1'))
                 else:
                     objects.append(pkl.load(f))
         x, y, tx, ty, allx, ally, graph = tuple(objects)
-        test_idx_reorder = parse_index_file("data/ind.{}.test.index".format(dataset_str))
+        test_file="%s/ind.%s.test.index"%(self.cfg.dataset_path,self.cfg.data_set)
+        test_idx_reorder = parse_index_file(test_file)
         test_idx_range = np.sort(test_idx_reorder)
-        if dataset_str == 'citeseer':
+        if self.cfg.data_set == 'citeseer':
             # Fix citeseer dataset (there are some isolated nodes in the graph)
             # Find isolated nodes, add them as zero-vecs into the right position
             test_idx_range_full = range(min(test_idx_reorder), max(test_idx_reorder) + 1)
