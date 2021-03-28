@@ -36,7 +36,7 @@ class Agent:
     def config(self):
         parser = argparse.ArgumentParser(description='uncertainty')
         
-        parser.add_argument('--model',default='cnn', choices=['cnn', 'dropout', 'scissors'])
+        parser.add_argument('--model',default='gcn', choices=['gcn', 'dropout', 'scissors'])
         parser.add_argument('--dropout', type=float, default=0.5)
         parser.add_argument('--hidden',type=int,default=16)
         parser.add_argument('--weight_decay', type=float, default=5e-4,
@@ -67,12 +67,16 @@ class Agent:
         return correct / len(labels)
 
     def test(self):
-        pass 
+        self.model.eval()
+        output = self.model(self.features, self.adj)
+        loss_test = F.nll_loss(output[self.idx_test], self.labels[self.idx_test])
+        acc_test = self.evaluate(output[self.idx_test], self.labels[self.idx_test])
+        logger.info("loss {:.4f}, accuracy{:.4f}".format(loss_test.item(),acc_test.item() ))
 
     def run(self):
-       for epoch in trange(self.cfg.epochs):
+        for epoch in trange(self.cfg.epochs):
            self.train()
-        #self.test()
+        self.test()
 
 if __name__=='__main__':
     agent=Agent()
