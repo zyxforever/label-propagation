@@ -9,7 +9,6 @@ def compute_knn(X):
 
 def compute_laplician(X):
     dm = cdist(X, X, 'sqeuclidean')
-  
     rbf = lambda x, sigma: math.exp((-x)/(2*(math.pow(sigma,2))))
     vfunc = np.vectorize(rbf)
     W = vfunc(dm, sigma)
