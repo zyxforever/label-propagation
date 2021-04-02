@@ -86,6 +86,8 @@ class Agent:
             if baseline=='lgc':
                 output=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10)
                 self.evaluate(output,self.labels)
+            if baseline=='gcn':
+                pass 
 if __name__=='__main__':
     agent=Agent()
     agent.run()
