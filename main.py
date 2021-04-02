@@ -8,9 +8,8 @@ import torch.nn.functional as F
 
 from tqdm import trange,tqdm 
 from models.gcn import GCN 
-from algorithms.lp import lgc
 from dataset import Dataset
-
+from algorithms.label_propagation import LabelPropagation
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s-%(name)s -%(levelname)s-%(message)s')
 logger=logging.getLogger(__name__)
 
@@ -18,7 +17,16 @@ class Agent:
     def __init__(self):
         self.cfg=self.config()
         self.data_set=Dataset(self.cfg).load_dataset()
-        adj, features, labels, idx_train, idx_val, idx_test=self.data_set
+        if self.cfg.data_set=='mnist10k':
+            adj,feature,labels,_,_=self.data_set
+        else:
+            adj, features, labels, idx_train, idx_val, idx_test=self.data_set
+        if self.cfg.cuda:
+            self.adj=adj.cuda()
+        else:
+            self.adj=adj
+            self.labels=labels
+        '''
         self.model = GCN(nfeat=features.shape[1],
                 nhid=self.cfg.hidden,
                 nclass=labels.max().item() + 1,
@@ -33,20 +41,21 @@ class Agent:
             self.idx_test = idx_test.cuda()
         # Model and optimizer
         self.optimizer = optim.Adam(self.model.parameters(),lr=self.cfg.lr, weight_decay=self.cfg.weight_decay)
+        '''
     def config(self):
         parser = argparse.ArgumentParser(description='uncertainty')
         
-        parser.add_argument('--baselines',default='lgc', choices=['lgc', 'dropout', 'scissors'])
+        parser.add_argument('--baselines',default=['lgc','gcn'])
         parser.add_argument('--dropout', type=float, default=0.5)
         parser.add_argument('--hidden',type=int,default=16)
         parser.add_argument('--weight_decay', type=float, default=5e-4)
-        parser.add_argument('--dataset_path',default='/home/zyx/datasets/cora')
-        parser.add_argument('--data_set',default='cora')
-        parser.add_argument('--label_rate',default=0.05)
+        parser.add_argument('--dataset_path',default='/home/zyx/datasets/MNIST10k.mat')
+        parser.add_argument('--data_set',default='mnist10k')
+        parser.add_argument('--label_rate',default=0.05,type=float)
         parser.add_argument('--train_batch_size',default=128)
         parser.add_argument('--epochs',default=200)
         parser.add_argument('--lr',default=0.01)
-        parser.add_argument('--cuda',default=True)
+        parser.add_argument('--cuda',default=False)
         return parser.parse_args()
     def train(self):
         self.model.train()
@@ -73,10 +82,10 @@ class Agent:
         logger.info("loss {:.4f}, accuracy{:.4f}".format(loss_test.item(),acc_test.item() ))
 
     def run(self):
-        for epoch in trange(self.cfg.epochs):
-           self.train()
-        self.test()
-
+        for baseline in self.cfg.baselines:
+            if baseline=='lgc':
+                output=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10)
+                self.evaluate(output,self.labels)
 if __name__=='__main__':
     agent=Agent()
     agent.run()

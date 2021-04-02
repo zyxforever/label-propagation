@@ -6,6 +6,7 @@ import networkx as nx
 import scipy.io
 import scipy.sparse as sp
 
+from sklearn.neighbors import kneighbors_graph
 
 def sample_mask(idx, l):
     """Create mask."""
@@ -63,6 +64,8 @@ class Dataset:
     def __init__(self,cfg):
         self.cfg=cfg  
     def load_dataset(self):
+        if self.cfg.data_set=='mnist10k':
+            return self.load_data_mat()
         return self.load_data()
     def load_data(self):    
         names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
@@ -120,7 +123,15 @@ class Dataset:
         M = fea['data'].shape[1]
         # 随机抽样
         idx_rand = np.random.choice(N, size=N, replace=False)
-        X = fea['labels'][idx_rand] if shuffle else fea['fea']
-        Y = fea['gt'][idx_rand] if shuffle else fea['gt']
+        X = fea['data'][idx_rand] if shuffle else fea['data']
+        Y = fea['labels'][idx_rand] if shuffle else fea['labels']
         Y = np.squeeze(Y)
-        return X, Y, N, M
+        adj=self.compute_knn(X)
+        return adj,X, Y, N, M
+
+    def compute_knn(self,X):
+        adj = kneighbors_graph(X, 10,mode='connectivity', include_self=True)
+        adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+        adj = normalize(adj + sp.eye(adj.shape[0]))
+        #adj = sparse_mx_to_torch_sparse_tensor(adj) 
+        return adj.toarray()

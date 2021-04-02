@@ -2,7 +2,6 @@ import math
 import numpy as np
 import scipy.io
 import matplotlib.pyplot as plt
-import sio as sio
 from scipy.spatial.distance import cdist
 from sklearn.datasets import make_moons
 from scipy.linalg import fractional_matrix_power
