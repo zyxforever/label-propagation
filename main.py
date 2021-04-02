@@ -36,11 +36,10 @@ class Agent:
     def config(self):
         parser = argparse.ArgumentParser(description='uncertainty')
         
-        parser.add_argument('--model',default='gcn', choices=['gcn', 'dropout', 'scissors'])
+        parser.add_argument('--baselines',default='lgc', choices=['lgc', 'dropout', 'scissors'])
         parser.add_argument('--dropout', type=float, default=0.5)
         parser.add_argument('--hidden',type=int,default=16)
-        parser.add_argument('--weight_decay', type=float, default=5e-4,
-                    help='Weight decay (L2 loss on parameters).')
+        parser.add_argument('--weight_decay', type=float, default=5e-4)
         parser.add_argument('--dataset_path',default='/home/zyx/datasets/cora')
         parser.add_argument('--data_set',default='cora')
         parser.add_argument('--label_rate',default=0.05)
