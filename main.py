@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from tqdm import trange,tqdm 
 from models.gcn import GCN 
 from dataset import Dataset
+from sklearn.metrics import accuracy_score as accuracy
 from algorithms.label_propagation import LabelPropagation
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s-%(name)s -%(levelname)s-%(message)s')
 logger=logging.getLogger(__name__)
@@ -51,10 +52,10 @@ class Agent:
         parser.add_argument('--weight_decay', type=float, default=5e-4)
         parser.add_argument('--dataset_path',default='/home/zyx/datasets/MNIST10k.mat')
         parser.add_argument('--data_set',default='mnist10k')
-        parser.add_argument('--label_rate',default=0.05,type=float)
+        parser.add_argument('--label_rate',default=0.01,type=float)
         parser.add_argument('--train_batch_size',default=128)
         parser.add_argument('--epochs',default=200)
-        parser.add_argument('--lr',default=0.01)
+        parser.add_argument('--lr',default=0.02)
         parser.add_argument('--cuda',default=False)
         return parser.parse_args()
     def train(self):
@@ -68,12 +69,10 @@ class Agent:
         loss_val = F.nll_loss(output[self.idx_val], self.labels[self.idx_val])
         acc_val= self.evaluate(output[self.idx_val], self.labels[self.idx_val])
         logger.info("loss_train {:.4f}, acc_train{:.4f}, loss_val:{:.4f}, acc_val:{:.4f}".format(loss_train.item(),acc_train.item(),loss_val.item(),acc_val.item() ))
-    def evaluate(self,output,labels):
-        preds = output.max(1)[1].type_as(labels)
-        correct = preds.eq(labels).double()
-        correct = correct.sum()
-        return correct / len(labels)
-
+    def evaluate(self,preds,labels):
+        #preds = output.max(1)[1].type_as(labels)
+        acc=accuracy(preds,labels)
+        logger.info("Accuracy:%s"%acc)
     def test(self):
         self.model.eval()
         output = self.model(self.features, self.adj)
@@ -84,6 +83,7 @@ class Agent:
     def run(self):
         for baseline in self.cfg.baselines:
             if baseline=='lgc':
+                logger.info("The result of lgc:")
                 output=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10)
                 self.evaluate(output,self.labels)
             if baseline=='gcn':

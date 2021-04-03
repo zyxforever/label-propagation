@@ -12,7 +12,8 @@ class LabelPropagation:
             F = np.dot(S, F)*alpha + (1-alpha)*Y_input
         output = np.zeros_like(F)
         output[np.arange(len(F)), F.argmax(1)] = 1
-        return output 
+        predict=[np.argmax(one_hot) for one_hot in output]
+        return predict 
 
 if __name__=='__main__':
     LabelPropagation.lgc()
