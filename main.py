@@ -73,7 +73,7 @@ class Agent:
         logger.info("loss_train {:.4f}, acc_train{:.4f}, loss_val:{:.4f}, acc_val:{:.4f}".format(loss_train.item(),acc_train.item(),loss_val.item(),acc_val.item() ))
     def evaluate(self,preds,labels):
         #preds = output.max(1)[1].type_as(labels)
-        acc=accuracy(preds,labels)
+        acc=accuracy(preds,labels) 
         label_entropy=Dataset.entropy(labels[:int(self.cfg.label_rate*len(labels))])
         logger.info("Entropy:%.4f,Accuracy:%s"%(label_entropy,acc))
     def test(self):

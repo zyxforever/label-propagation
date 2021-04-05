@@ -1,8 +1,7 @@
 import numpy as np 
-from abc import abstractmethod
 
 class LabelPropagation:
-    @abstractmethod
+    @staticmethod
     def lgc(S,labels,n,n_labeled,class_num):
         n_iter=400
         alpha=0.99

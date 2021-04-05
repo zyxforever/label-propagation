@@ -122,7 +122,7 @@ class Dataset:
         N = fea['data'].shape[0]
         M = fea['data'].shape[1]
         # 随机抽样
-        idx_rand = np.random.choice(N, size=N, replace=False)
+        idx_rand = self.rand_idx(fea['labels'])
         X = fea['data'][idx_rand] if shuffle else fea['data']
         Y = fea['labels'][idx_rand] if shuffle else fea['labels']
         Y = np.squeeze(Y)
@@ -136,7 +136,13 @@ class Dataset:
         return -np.sum(probs*np.log(probs))/np.log(len(np.unique(Y)))
     def compute_knn(self,X):
         adj = kneighbors_graph(X, 10,mode='connectivity', include_self=True)
-        adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+        #adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
         adj = normalize(adj + sp.eye(adj.shape[0]))
         #adj = sparse_mx_to_torch_sparse_tensor(adj) 
         return adj.toarray()
+    
+    # generate the rand_idx for data 
+    def rand_idx(self,Y):
+        N=len(Y)
+        idx_rand=np.random.choice(N, size=N, replace=False)
+        return idx_rand
