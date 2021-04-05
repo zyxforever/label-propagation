@@ -17,9 +17,11 @@ logger=logging.getLogger(__name__)
 class Agent:
     def __init__(self):
         self.cfg=self.config()
+        logger.info("Label Rate:%s"%self.cfg.label_rate)
         self.data_set=Dataset(self.cfg).load_dataset()
         if self.cfg.data_set=='mnist10k':
-            adj,feature,labels,_,_=self.data_set
+            adj,feature,labels,N,_=self.data_set
+            
         else:
             adj, features, labels, idx_train, idx_val, idx_test=self.data_set
         if self.cfg.cuda:
@@ -50,7 +52,7 @@ class Agent:
         parser.add_argument('--dropout', type=float, default=0.5)
         parser.add_argument('--hidden',type=int,default=16)
         parser.add_argument('--weight_decay', type=float, default=5e-4)
-        parser.add_argument('--dataset_path',default='/home/zyx/datasets/MNIST10k.mat')
+        parser.add_argument('--dataset_path',default='data/MNIST10k.mat')
         parser.add_argument('--data_set',default='mnist10k')
         parser.add_argument('--label_rate',default=0.01,type=float)
         parser.add_argument('--train_batch_size',default=128)
@@ -72,7 +74,8 @@ class Agent:
     def evaluate(self,preds,labels):
         #preds = output.max(1)[1].type_as(labels)
         acc=accuracy(preds,labels)
-        logger.info("Accuracy:%s"%acc)
+        label_entropy=Dataset.entropy(labels[:int(self.cfg.label_rate*len(labels))])
+        logger.info("Entropy:%.4f,Accuracy:%s"%(label_entropy,acc))
     def test(self):
         self.model.eval()
         output = self.model(self.features, self.adj)
@@ -83,9 +86,9 @@ class Agent:
     def run(self):
         for baseline in self.cfg.baselines:
             if baseline=='lgc':
-                logger.info("The result of lgc:")
                 output=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10)
                 self.evaluate(output,self.labels)
+                logger.info("---------------------------")
             if baseline=='gcn':
                 pass 
 if __name__=='__main__':

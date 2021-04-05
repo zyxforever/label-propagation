@@ -129,6 +129,11 @@ class Dataset:
         adj=self.compute_knn(X)
         return adj,X, Y, N, M
 
+    @staticmethod
+    def entropy(Y):
+        num_classes=np.bincount(Y)
+        probs=num_classes/len(Y)
+        return -np.sum(probs*np.log(probs))/np.log(len(np.unique(Y)))
     def compute_knn(self,X):
         adj = kneighbors_graph(X, 10,mode='connectivity', include_self=True)
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
