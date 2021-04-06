@@ -7,13 +7,18 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from tqdm import trange,tqdm 
+from logging import handlers
+from trainer import Trainer
 from models.gcn import GCN 
 from dataset import Dataset
 from sklearn.metrics import accuracy_score as accuracy
 from algorithms.label_propagation import LabelPropagation
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s-%(name)s -%(levelname)s-%(message)s')
+logging.basicConfig(level = logging.INFO, filename='new.log',filemode='a',format = '%(asctime)s-%(name)s -%(levelname)s-%(message)s')
 logger=logging.getLogger(__name__)
-
+th = handlers.TimedRotatingFileHandler(filename='logs/log.log',when='D',backupCount=2,encoding='utf-8')
+format_str = logging.Formatter('%(asctime)s-%(name)s -%(levelname)s-%(message)s')#设置日志格式
+th.setFormatter(format_str) 
+logger.addHandler(th)
 class Agent:
     def __init__(self):
         self.cfg=self.config()
@@ -50,6 +55,7 @@ class Agent:
         
         parser.add_argument('--baselines',default=['lgc','gcn'])
         parser.add_argument('--dropout', type=float, default=0.5)
+        parser.add_argument('--model',default='gcn')
         parser.add_argument('--hidden',type=int,default=16)
         parser.add_argument('--weight_decay', type=float, default=5e-4)
         parser.add_argument('--dataset_path',default='data/MNIST10k.mat')
@@ -86,11 +92,14 @@ class Agent:
     def run(self):
         for baseline in self.cfg.baselines:
             if baseline=='lgc':
-                output=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10)
+                output,entropy=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10)
                 self.evaluate(output,self.labels)
                 logger.info("---------------------------")
             if baseline=='gcn':
-                pass 
+                self.cfg.model='gcn'
+                trainer=Trainer(self.cfg)
+                trainer.train()
+
 if __name__=='__main__':
     agent=Agent()
     agent.run()
