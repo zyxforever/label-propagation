@@ -1,4 +1,7 @@
 import numpy as np 
+import logging 
+logging.basicConfig(level = logging.INFO,format = '%(asctime)s-%(name)s -%(levelname)s-%(message)s')
+logger=logging.getLogger(__name__)
 
 class LabelPropagation:
     @staticmethod
@@ -9,10 +12,12 @@ class LabelPropagation:
         F = np.dot(S, Y_input)*alpha + (1-alpha)*Y_input
         for t in range(n_iter):
             F = np.dot(S, F)*alpha + (1-alpha)*Y_input
+        entropy=-np.sum(F*np.log(F))/np.log(class_num)
+        logger.info("Entropy of F: %s"%entropy)
         output = np.zeros_like(F)
         output[np.arange(len(F)), F.argmax(1)] = 1
         predict=[np.argmax(one_hot) for one_hot in output]
-        return predict 
+        return predict,entropy
 
 if __name__=='__main__':
     LabelPropagation.lgc()
