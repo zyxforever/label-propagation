@@ -2,8 +2,8 @@ import os
 class Tools:
     @staticmethod
     def cmd():
-        for i in range(10):
-            os.system('python main.py --label_rate 0.03')
+        for i in range(100):
+            os.system('python main.py --label_rate 0.01')
 if __name__=='__main__':
     #Tools.cmd()
     '''
