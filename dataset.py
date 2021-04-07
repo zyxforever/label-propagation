@@ -135,7 +135,7 @@ class Dataset:
         probs=num_classes/len(Y)
         return -np.sum(probs*np.log(probs))/np.log(len(np.unique(Y)))
     def compute_knn(self,X):
-        adj = kneighbors_graph(X, 10,mode='connectivity', include_self=True)
+        adj = kneighbors_graph(X, self.cfg.num_knn,mode='connectivity', include_self=True)
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
         adj = normalize(adj + sp.eye(adj.shape[0]))
         #adj = sparse_mx_to_torch_sparse_tensor(adj) 
