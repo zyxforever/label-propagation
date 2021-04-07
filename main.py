@@ -21,7 +21,8 @@ class Agent:
         self.logger.info("Label Rate:%s"%self.cfg.label_rate)
         self.data_set=Dataset(self.cfg).load_dataset()
         if self.cfg.data_set=='mnist10k':
-            adj,feature,labels,N,_=self.data_set
+            adj,feature,labels,N,M=self.data_set
+            self.idx_confuse=Dataset.entropy_adj(adj,labels[:int(self.cfg.label_rate*len(labels))],labels)
             
         else:
             adj, features, labels, idx_train, idx_val, idx_test=self.data_set
@@ -56,8 +57,8 @@ class Agent:
         parser.add_argument('--weight_decay', type=float, default=5e-4)
         parser.add_argument('--dataset_path',default='data/MNIST10k.mat')
         parser.add_argument('--data_set',default='mnist10k')
-        parser.add_argument('--label_rate',default=0.01,type=float)
-        parser.add_argument('--num_knn',default=5,type=float)
+        parser.add_argument('--label_rate',default=0.02,type=float)
+        parser.add_argument('--num_knn',default=10)
         parser.add_argument('--train_batch_size',default=128)
         parser.add_argument('--epochs',default=200)
         parser.add_argument('--lr',default=0.02)
@@ -74,11 +75,6 @@ class Agent:
         loss_val = F.nll_loss(output[self.idx_val], self.labels[self.idx_val])
         acc_val= self.evaluate(output[self.idx_val], self.labels[self.idx_val])
         self.logger.info("loss_train {:.4f}, acc_train{:.4f}, loss_val:{:.4f}, acc_val:{:.4f}".format(loss_train.item(),acc_train.item(),loss_val.item(),acc_val.item() ))
-    def evaluate(self,preds,labels):
-        #preds = output.max(1)[1].type_as(labels)
-        acc=accuracy(preds,labels) 
-        label_entropy=Dataset.entropy(labels[:int(self.cfg.label_rate*len(labels))])
-        self.logger.info("Entropy:%.4f,Accuracy:%s"%(label_entropy,acc))
     def test(self):
         self.model.eval()
         output = self.model(self.features, self.adj)
@@ -89,8 +85,10 @@ class Agent:
     def run(self):
         for baseline in self.cfg.baselines:
             if baseline=='lgc':
-                output,entropy=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10,self.logger)
-                self.evaluate(output,self.labels)
+                output=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),10,self.logger)
+                accuracy=accuracy(output,self.labels)
+                confuse_accuracy=accuracy(output[self.idx_confuse],self.labels[self.idx_confuse])
+                self.logger.info("confuse_accurady%s,accuracy%s"%(confuse_accuracy,accuracy6))
                 self.logger.info("---------------------------")
             if baseline=='gcn':
                 self.cfg.model='gcn'

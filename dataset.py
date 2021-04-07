@@ -5,9 +5,9 @@ import numpy as np
 import networkx as nx
 import scipy.io
 import scipy.sparse as sp
-
+from tools import Tools
 from sklearn.neighbors import kneighbors_graph
-
+logger=Tools.get_logger(__name__)
 def sample_mask(idx, l):
     """Create mask."""
     mask = np.zeros(l)
@@ -134,6 +134,22 @@ class Dataset:
         num_classes=np.bincount(Y)
         probs=num_classes/len(Y)
         return -np.sum(probs*np.log(probs))/np.log(len(np.unique(Y)))
+    @staticmethod 
+    def entropy_adj(adj,Y_L,Y):
+        N=len(Y_L)
+        idx_confuse=[]
+        for i,label in enumerate(Y_L): 
+            indices=(adj[i]>0).nonzero()[0]
+            for idx in indices:
+                idx_labeled=((adj[idx]>0).nonzero()[0]<N).nonzero()[0]
+                if idx_labeled.shape[0]>1:
+                    logger.info("count%s"%np.unique(Y[idx_labeled]).shape[0])
+                    num_class=np.unique(Y[idx_labeled]).shape[0]
+                    if num_class>1:
+                        logger.info("i:%s,idx:%s,Y_less:%s,Y:%s"%(i,idx,Y[idx_labeled],Y[idx]))
+                        idx_confuse.append(idx)
+        return np.array(idx_confuse)
+
     def compute_knn(self,X):
         adj = kneighbors_graph(X, self.cfg.num_knn,mode='connectivity', include_self=True)
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)

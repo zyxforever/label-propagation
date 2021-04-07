@@ -8,11 +8,12 @@ class Tools:
             os.system('python main.py --label_rate 0.01')
 
     def get_logger(name):
-        logging.basicConfig(level = logging.INFO, filename='new.log',filemode='a',format = '%(asctime)s-%(name)s -%(levelname)s-%(message)s')
+        format_str = logging.Formatter('%(asctime)s-%(name)s -%(levelname)s-%(message)s')#设置日志格式
+        logging.basicConfig(level = logging.INFO,format = '%(asctime)s-%(name)s -%(levelname)s-%(message)s')
         logger=logging.getLogger(name)
         th = handlers.TimedRotatingFileHandler(filename='logs/log.log',when='D',backupCount=2,encoding='utf-8')
-        format_str = logging.Formatter('%(asctime)s-%(name)s -%(levelname)s-%(message)s')#设置日志格式
         th.setFormatter(format_str) 
+        th.setLevel(logging.INFO)
         logger.addHandler(th)
         return logger 
 if __name__=='__main__':
