@@ -54,17 +54,11 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     shape = torch.Size(sparse_mx.shape)
     return torch.sparse.FloatTensor(indices, values, shape)
 
-def accuracy(output, labels):
-    preds = output.max(1)[1].type_as(labels)
-    correct = preds.eq(labels).double()
-    correct = correct.sum()
-    return correct / len(labels)
-
 class Dataset:
     def __init__(self,cfg):
         self.cfg=cfg  
     def load_dataset(self):
-        if self.cfg.data_set=='mnist10k':
+        if self.cfg.data_set in ['mnist10k','letters']:
             return self.load_data_mat()
         return self.load_data()
     def load_data(self):    
@@ -118,14 +112,25 @@ class Dataset:
     def load_data_mat(self,shuffle=True):
         # 读取特征矩阵
         fea = scipy.io.loadmat(self.cfg.dataset_path)
+        feature_name='data'
+        label_name='labels'
+        if self.cfg.data_set=='letters':
+            feature_name='fea'
+            label_name='gt'
+        elif self.cfg.data_set=='':
+            feature_name='fea'
+            label_name='gt'
         # 获取特征矩阵 行 列大小
-        N = fea['data'].shape[0]
-        M = fea['data'].shape[1]
+        N = fea[feature_name].shape[0]
+        M = fea[feature_name].shape[1]
         # 随机抽样
-        idx_rand = self.rand_idx(fea['labels'])
-        X = fea['data'][idx_rand] if shuffle else fea['data']
-        Y = fea['labels'][idx_rand] if shuffle else fea['labels']
+        idx_rand = self.rand_idx(fea[label_name])
+        X = fea[feature_name][idx_rand] if shuffle else fea[feature_name]
+        Y = fea[label_name][idx_rand] if shuffle else fea[label_name]
         Y = np.squeeze(Y)
+        if self.cfg.data_set=='letters':
+            Y=Y-1
+        X=X/255
         adj=self.compute_knn(X)
         return adj,X, Y, N, M
 
@@ -134,21 +139,43 @@ class Dataset:
         num_classes=np.bincount(Y)
         probs=num_classes/len(Y)
         return -np.sum(probs*np.log(probs))/np.log(len(np.unique(Y)))
+    '''
+        idx_confuse:      idx of nodes have more than one labeled neighborhood
+        idx_confuse_more: the true label is not in the 
+        idx_idx_pure:     idx of nodes have only one labeled neighborhood
+        idx_idx_confuse:  idx of the nodes whose has only one labeled neigborhood 
+                            and it's label is not equal to its neighborhood's 
+    '''
     @staticmethod 
     def entropy_adj(adj,Y_L,Y):
         N=len(Y_L)
         idx_confuse=[]
+        idx_confuse_more=[]
+        idx_pure=[]
+        idx_pure_confuse=[]
         for i,label in enumerate(Y_L): 
             indices=(adj[i]>0).nonzero()[0]
             for idx in indices:
-                idx_labeled=((adj[idx]>0).nonzero()[0]<N).nonzero()[0]
-                if idx_labeled.shape[0]>1:
-                    logger.info("count%s"%np.unique(Y[idx_labeled]).shape[0])
-                    num_class=np.unique(Y[idx_labeled]).shape[0]
-                    if num_class>1:
-                        logger.info("i:%s,idx:%s,Y_less:%s,Y:%s"%(i,idx,Y[idx_labeled],Y[idx]))
+                idx_con=(adj[idx]>0).nonzero()[0]
+                idx_labeled=idx_con[idx_con<N]
+                num_labeled=idx_labeled.shape[0]
+                #idx_labeled=((adj[idx]>0).nonzero()[0]<N).nonzero()[0]
+                if num_labeled==1 and idx not in idx_pure and idx not in idx_pure_confuse:
+                    if not Y[idx] in np.unique(Y[idx_labeled]):
+                        idx_pure_confuse.append(idx)
+                    else:
+                        idx_pure.append(idx)
+                        #logger.info("Pure_Confuse i:%s,idx:%s,Y_less:%s,Y:%s"%(i,idx,Y[idx_labeled],Y[idx]))
+                elif num_labeled>1 and idx not in idx_confuse and idx not in idx_confuse_more:
+                    if not Y[idx] in np.unique(Y[idx_labeled]):
+                        idx_confuse_more.append(idx)
+                    else:
                         idx_confuse.append(idx)
-        return np.array(idx_confuse)
+        idx_confuse=np.array(idx_confuse)
+        idx_confuse_more=np.array(idx_confuse_more)
+        idx_pure=np.array(idx_pure)
+        idx_pure_confuse=np.array(idx_pure_confuse)
+        return idx_confuse,idx_confuse_more,idx_pure,idx_pure_confuse
 
     def compute_knn(self,X):
         adj = kneighbors_graph(X, self.cfg.num_knn,mode='connectivity', include_self=True)
