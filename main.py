@@ -12,7 +12,7 @@ from trainer import Trainer
 from models.gcn import GCN 
 from dataset import Dataset
 from sklearn.metrics import accuracy_score as accuracy
-from algorithms.label_propagation import LabelPropagation
+from algorithms.label_propagation import LPA
 
 class Agent:
     def config(self):
@@ -68,9 +68,13 @@ class Agent:
     def run(self):
         for baseline in self.cfg.baselines:
             if baseline=='lgc':
-                output=LabelPropagation.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),self.logger)
+                output=LPA.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),self.logger)
                 self.evaluate(output)
-            if baseline=='gcn':
+                output2=LPA.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),self.logger,True)
+                self.evaluate(output2)
+            elif baseline=='lnp':
+                pass 
+            elif baseline=='gcn':
                 self.cfg.model='gcn'
                 trainer=Trainer(self.cfg)
                 trainer.train()

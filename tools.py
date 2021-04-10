@@ -20,7 +20,7 @@ class Tools:
         th = handlers.TimedRotatingFileHandler(filename='logs/log.log',when='D',backupCount=10,encoding='utf-8')
         th.setFormatter(format_str) 
         th.setLevel(logging.INFO)
-        logger.addHandler(th)
+        #logger.addHandler(th)
         return logger 
 if __name__=='__main__':
     #Tools.cmd()
