@@ -110,16 +110,15 @@ class Dataset:
         return adj, features, labels, idx_train, idx_val, idx_test
 
     def load_data_mat(self,shuffle=True):
-        self.cfg.dataset_path='data/MNIST10k.mat'
+        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat','letters':'data/Letters.mat'}
+        self.cfg.dataset_path=data_name_pat[self.cfg.data_set]
         feature_name='data'
         label_name='labels'
-        if self.cfg.data_set=='letters':
+        if self.cfg.data_set in ['letters','usps']:
             feature_name='fea'
             label_name='gt'
             self.cfg.dataset_path='data/Letters.mat'
-        elif self.cfg.data_set=='':
-            feature_name='fea'
-            label_name='gt'
+        
         # 读取特征矩阵
         fea = scipy.io.loadmat(self.cfg.dataset_path)
         # 获取特征矩阵 行 列大小
