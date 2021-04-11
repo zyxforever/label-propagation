@@ -110,7 +110,7 @@ class Dataset:
         return adj, features, labels, idx_train, idx_val, idx_test
 
     def load_data_mat(self,shuffle=True):
-        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat','letters':'data/Letters.mat'}
+        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat','mnist10k':'data/MNIST10k.mat'}
         self.cfg.dataset_path=data_name_pat[self.cfg.data_set]
         feature_name='data'
         label_name='labels'
