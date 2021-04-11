@@ -93,12 +93,18 @@ class Dataset:
         labels = np.vstack((ally, ty))
         labels[test_idx_reorder, :] = labels[test_idx_range, :]
         features = normalize(features)
-        adj = preprocess_adj(adj)
+        
 
         features = torch.FloatTensor(np.array(features.todense())).float()
         labels = torch.LongTensor(labels)
         labels = torch.max(labels, dim=1)[1]
-        adj = sparse_mx_to_torch_sparse_tensor(adj).float()
+        if self.cfg.model=='gcn':
+            adj = preprocess_adj(adj)
+            adj = sparse_mx_to_torch_sparse_tensor(adj).float()
+        elif self.cfg.model=='gat':
+            adj=adj + sp.eye(adj.shape[0])
+            adj=torch.FloatTensor(np.array(adj.todense())).float()
+        
 
         idx_test = test_idx_range.tolist()
         idx_train = range(len(y))
@@ -111,7 +117,7 @@ class Dataset:
 
     def load_data_mat(self,shuffle=True):
         data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat','mnist10k':'data/MNIST10k.mat'}
-        self.cfg.dataset_path=data_name_pat[self.cfg.data_set]
+        self.cfg.dataset_path=data_name_path[self.cfg.data_set]
         feature_name='data'
         label_name='labels'
         if self.cfg.data_set in ['letters','usps']:

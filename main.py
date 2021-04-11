@@ -17,18 +17,21 @@ from algorithms.label_propagation import LPA
 class Agent:
     def config(self):
         parser = argparse.ArgumentParser(description='uncertainty')
-        parser.add_argument('--baselines',default=['lgc','gcn'])
+        parser.add_argument('--baselines',default=['gat'])
         parser.add_argument('--dropout', type=float, default=0.5)
-        parser.add_argument('--model',default='gcn')
-        parser.add_argument('--hidden',type=int,default=16)
+        parser.add_argument('--model',default='gat')
         parser.add_argument('--weight_decay', type=float, default=5e-4)
-        parser.add_argument('--dataset_path',default='data/Letters.mat')
-        parser.add_argument('--data_set',default='letters')
+        parser.add_argument('--dataset_path',default='data/cora')
+        parser.add_argument('--data_set',default='cora')
         parser.add_argument('--label_rate',default=0.01,type=float)
         parser.add_argument('--num_knn',default=10,type=int)
         parser.add_argument('--train_batch_size',default=128)
-        parser.add_argument('--epochs',default=200)
-        parser.add_argument('--lr',default=0.02)
+        parser.add_argument('--epochs',default=10000)
+        parser.add_argument('--lr',default=0.005)
+        parser.add_argument('--hidden', type=int, default=8, help='Number of hidden units.')
+        parser.add_argument('--nb_heads', type=int, default=8, help='Number of head attentions.')
+        parser.add_argument('--alpha', type=float, default=0.2, help='Alpha for the leaky_relu.')
+        parser.add_argument('--patience', type=int, default=100, help='Patience')
         parser.add_argument('--cuda',default=False)
         return parser.parse_args()
 
@@ -76,7 +79,11 @@ class Agent:
                 pass 
             elif baseline=='gcn':
                 self.cfg.model='gcn'
-                trainer=Trainer(self.cfg)
+                trainer=Trainer(self.cfg,self.data_set)
+                trainer.train()
+            elif baseline=='gat':
+                self.cfg.model='gat'
+                trainer=Trainer(self.cfg,self.data_set)
                 trainer.train()
 
 if __name__=='__main__':
