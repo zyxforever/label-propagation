@@ -17,12 +17,12 @@ from algorithms.label_propagation import LPA
 class Agent:
     def config(self):
         parser = argparse.ArgumentParser(description='uncertainty')
-        parser.add_argument('--baselines',default=['gat'])
+        parser.add_argument('--baselines',default=['lgc'])
         parser.add_argument('--dropout', type=float, default=0.5)
         parser.add_argument('--model',default='gat')
         parser.add_argument('--weight_decay', type=float, default=5e-4)
         parser.add_argument('--dataset_path',default='data/cora')
-        parser.add_argument('--data_set',default='cora')
+        parser.add_argument('--data_set',default='coil')
         parser.add_argument('--label_rate',default=0.01,type=float)
         parser.add_argument('--num_knn',default=10,type=int)
         parser.add_argument('--train_batch_size',default=128)
@@ -41,7 +41,7 @@ class Agent:
         self.logger.info("Label Rate:{},DataSet:{},num_knn:{}"\
                 .format(self.cfg.label_rate,self.cfg.data_set,self.cfg.num_knn))
         self.data_set=Dataset(self.cfg).load_dataset()
-        if self.cfg.data_set in ['mnist10k','letters']:
+        if self.cfg.data_set in ['mnist10k','letters','coil']:
             adj,feature,labels,N,M=self.data_set
             self.idx_confuse,self.idx_confuse_more,self.idx_pure,self.idx_pure_confuse=\
                 Dataset.entropy_adj(adj,labels[:int(self.cfg.label_rate*len(labels))],labels)

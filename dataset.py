@@ -58,7 +58,7 @@ class Dataset:
     def __init__(self,cfg):
         self.cfg=cfg  
     def load_dataset(self):
-        if self.cfg.data_set in ['mnist10k','letters']:
+        if self.cfg.data_set in ['mnist10k','letters','coil']:
             return self.load_data_mat()
         return self.load_data()
     def load_data(self):    
@@ -116,15 +116,17 @@ class Dataset:
         return adj, features, labels, idx_train, idx_val, idx_test
 
     def load_data_mat(self,shuffle=True):
-        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat','mnist10k':'data/MNIST10k.mat'}
+        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat',
+            'mnist10k':'data/MNIST10k.mat','coil':'data/Coil20Data_25_uni.mat'}
         self.cfg.dataset_path=data_name_path[self.cfg.data_set]
         feature_name='data'
         label_name='labels'
         if self.cfg.data_set in ['letters','usps']:
             feature_name='fea'
             label_name='gt'
-            self.cfg.dataset_path='data/Letters.mat'
-        
+        elif self.cfg.data_set in ['coil']:
+            feature_name='X'
+            label_name='Y'
         # 读取特征矩阵
         fea = scipy.io.loadmat(self.cfg.dataset_path)
         # 获取特征矩阵 行 列大小
@@ -135,7 +137,7 @@ class Dataset:
         X = fea[feature_name][idx_rand] if shuffle else fea[feature_name]
         Y = fea[label_name][idx_rand] if shuffle else fea[label_name]
         Y = np.squeeze(Y)
-        if self.cfg.data_set=='letters':
+        if self.cfg.data_set in['letters','coil']:
             Y=Y-1
         X=X/255
         adj=self.compute_knn(X)
@@ -185,9 +187,10 @@ class Dataset:
         return idx_confuse,idx_confuse_more,idx_pure,idx_pure_confuse
 
     def compute_knn(self,X):
-        adj = kneighbors_graph(X, self.cfg.num_knn,mode='connectivity', include_self=True)
+        adj = kneighbors_graph(X, self.cfg.num_knn,mode='connectivity', include_self=False)
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-        adj = normalize(adj + sp.eye(adj.shape[0]))
+        #adj = normalize(adj + sp.eye(adj.shape[0]))
+        adj = normalize(adj)
         #adj = sparse_mx_to_torch_sparse_tensor(adj) 
         return adj.toarray()
     
