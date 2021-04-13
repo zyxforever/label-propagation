@@ -1,12 +1,17 @@
 import sys
+import math 
 import torch
 import pickle as pkl
 import numpy as np 
 import networkx as nx
 import scipy.io
 import scipy.sparse as sp
+
 from tools import Tools
+from scipy.linalg import fractional_matrix_power
 from sklearn.neighbors import kneighbors_graph
+from scipy.spatial.distance import cdist
+
 logger=Tools.get_logger(__name__)
 def sample_mask(idx, l):
     """Create mask."""
@@ -57,10 +62,35 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
 class Dataset:
     def __init__(self,cfg):
         self.cfg=cfg  
+        self.init_data()
+    def init_data(self,shuffle=True):
+        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat',
+            'mnist10k':'data/MNIST10k.mat','coil':'data/Coil20Data_25_uni.mat'}
+        self.cfg.dataset_path=data_name_path[self.cfg.data_set]
+        feature_name='data'
+        label_name='labels'
+        if self.cfg.data_set in ['letters','usps']:
+            feature_name='fea'
+            label_name='gt'
+        elif self.cfg.data_set in ['coil']:
+            feature_name='X'
+            label_name='Y'
+        # 读取特征矩阵
+        fea = scipy.io.loadmat(self.cfg.dataset_path)
+        # 随机抽样
+        idx_rand = self.rand_idx(fea[label_name])
+        self.X = fea[feature_name][idx_rand] if shuffle else fea[feature_name]
+        self.Y = fea[label_name][idx_rand] if shuffle else fea[label_name]
+        self.Y = np.squeeze(self.Y)
+        if self.cfg.data_set in['letters','coil']:
+            self.Y=self.Y-1
+        self.X=self.X/255
+
     def load_dataset(self):
         if self.cfg.data_set in ['mnist10k','letters','coil']:
             return self.load_data_mat()
-        return self.load_data()
+        else:
+            return self.load_data()
     def load_data(self):    
         names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
         objects = []
@@ -116,38 +146,11 @@ class Dataset:
         return adj, features, labels, idx_train, idx_val, idx_test
 
     def load_data_mat(self,shuffle=True):
-        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat',
-            'mnist10k':'data/MNIST10k.mat','coil':'data/Coil20Data_25_uni.mat'}
-        self.cfg.dataset_path=data_name_path[self.cfg.data_set]
-        feature_name='data'
-        label_name='labels'
-        if self.cfg.data_set in ['letters','usps']:
-            feature_name='fea'
-            label_name='gt'
-        elif self.cfg.data_set in ['coil']:
-            feature_name='X'
-            label_name='Y'
-        # 读取特征矩阵
-        fea = scipy.io.loadmat(self.cfg.dataset_path)
-        # 获取特征矩阵 行 列大小
-        N = fea[feature_name].shape[0]
-        M = fea[feature_name].shape[1]
-        # 随机抽样
-        idx_rand = self.rand_idx(fea[label_name])
-        X = fea[feature_name][idx_rand] if shuffle else fea[feature_name]
-        Y = fea[label_name][idx_rand] if shuffle else fea[label_name]
-        Y = np.squeeze(Y)
-        if self.cfg.data_set in['letters','coil']:
-            Y=Y-1
-        X=X/255
-        adj=self.compute_knn(X)
-        return adj,X, Y, N, M
-
-    @staticmethod
-    def entropy(Y):
-        num_classes=np.bincount(Y)
-        probs=num_classes/len(Y)
-        return -np.sum(probs*np.log(probs))/np.log(len(np.unique(Y)))
+        if self.cfg.distance=='knn':
+            adj=self.compute_knn(self.X)
+        else:
+            adj=self.weight_matrix()
+        return adj,self.X,self.Y
     '''
         idx_confuse:      idx of nodes have more than one labeled neighborhood
         idx_confuse_more: the true label is not in the 
@@ -193,7 +196,24 @@ class Dataset:
         adj = normalize(adj)
         #adj = sparse_mx_to_torch_sparse_tensor(adj) 
         return adj.toarray()
-    
+
+    def weight_matrix(self):
+        sigma = 0.1
+        dm = cdist(self.X, self.X, 'euclidean')
+        # print('dm=', dm)
+        rbf = lambda x, sigma: math.exp((-x) / (2 * (math.pow(sigma, 2))))
+        # print(rbf)
+        vfunc = np.vectorize(rbf)
+        # print(vfunc)
+        W = vfunc(dm, sigma)
+        np.fill_diagonal(W, 0)
+        # print('w=',W)
+        sum_lines = np.sum(W, axis=1)
+        D = np.diag(sum_lines)
+        # print('d=',D)
+        D = fractional_matrix_power(D, -0.5)
+        S = np.dot(np.dot(D, W), D)
+        return S
     # generate the rand_idx for data 
     def rand_idx(self,Y):
         N=len(Y)
