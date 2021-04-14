@@ -64,8 +64,8 @@ class Dataset:
         self.cfg=cfg  
         self.init_data()
     def init_data(self,shuffle=True):
-        data_name_path={'letters':'data/MNIST10k.mat','usps':'data/USPS.mat',
-            'mnist10k':'data/MNIST10k.mat','coil':'data/Coil20Data_25_uni.mat'}
+        data_name_path={'letters':'data/Letters.mat','usps':'data/USPS.mat',
+            'mnist10k':'data/MNIST10k.mat','coil':'data/COIL20.mat'}
         self.cfg.dataset_path=data_name_path[self.cfg.data_set]
         feature_name='data'
         label_name='labels'
@@ -73,18 +73,20 @@ class Dataset:
             feature_name='fea'
             label_name='gt'
         elif self.cfg.data_set in ['coil']:
-            feature_name='X'
-            label_name='Y'
+            feature_name='fea'
+            label_name='gnd'
         # 读取特征矩阵
         fea = scipy.io.loadmat(self.cfg.dataset_path)
         # 随机抽样
-        idx_rand = self.rand_idx(fea[label_name])
+        N=len(fea[label_name])
+        idx_rand=np.random.choice(N, size=N, replace=False)
+        #idx_rand = self.rand_idx(fea[label_name])
         self.X = fea[feature_name][idx_rand] if shuffle else fea[feature_name]
         self.Y = fea[label_name][idx_rand] if shuffle else fea[label_name]
         self.Y = np.squeeze(self.Y)
         if self.cfg.data_set in['letters','coil']:
             self.Y=self.Y-1
-        self.X=self.X/255
+        #self.X=self.X/255
 
     def load_dataset(self):
         if self.cfg.data_set in ['mnist10k','letters','coil']:
@@ -214,8 +216,3 @@ class Dataset:
         D = fractional_matrix_power(D, -0.5)
         S = np.dot(np.dot(D, W), D)
         return S
-    # generate the rand_idx for data 
-    def rand_idx(self,Y):
-        N=len(Y)
-        idx_rand=np.random.choice(N, size=N, replace=False)
-        return idx_rand

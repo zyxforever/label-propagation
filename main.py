@@ -7,20 +7,22 @@ from tqdm import trange,tqdm
 from trainer import Trainer
 from dataset import Dataset
 from sklearn.metrics import accuracy_score as accuracy
-from algorithms.label_propagation import LPA
+from algorithms.lpa import LPA
 
 class Agent:
     def config(self):
         parser = argparse.ArgumentParser(description='uncertainty')
-        parser.add_argument('--baselines',default=['lgc'])
+        parser.add_argument('--baselines',nargs='+',default=['lgc'])
+        parser.add_argument('--data_set',default='mnist10k')
+        parser.add_argument('--label_rate',default=0.005,type=float)
+        parser.add_argument('--num_knn',default=1,type=int)
+        parser.add_argument('--distance',default='gauss')
+
         parser.add_argument('--dropout', type=float, default=0.5)
         parser.add_argument('--model',default='gat')
         parser.add_argument('--weight_decay', type=float, default=5e-4)
         parser.add_argument('--dataset_path',default='data/cora')
-        parser.add_argument('--data_set',default='coil')
-        parser.add_argument('--label_rate',default=0.05,type=float)
-        parser.add_argument('--num_knn',default=10,type=int)
-        parser.add_argument('--distance',default='knn')
+        
         parser.add_argument('--train_batch_size',default=128)
         parser.add_argument('--epochs',default=10000)
         parser.add_argument('--lr',default=0.005)
@@ -67,9 +69,13 @@ class Agent:
         self.logger.info("Acc:%s"%acc)
         self.logger.info("---------------------------")
     def run(self):
+        self.logger.info(self.cfg.baselines)
         for baseline in self.cfg.baselines:
             if baseline=='lgc':
-                output=LPA.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),self.logger)
+                self.logger.info(baseline)
+                output=LPA.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),self.logger,False )
+                self.evaluate(output)
+                output=LPA.lgc(self.adj,self.labels,len(self.labels),int(len(self.labels)*self.cfg.label_rate),self.logger,True )
                 self.evaluate(output)
             elif baseline=='lgc_new':
                 self.adj=self.data_loader.weight_matrix()
