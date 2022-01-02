@@ -1,3 +1,3 @@
-# semi-supervised with Label Propgation
+# semi-supervised with GCN and LP 
+python main.py --dataset data_ORL_32 --method lgc lnp
 
-python main.py --dataset cora --dataset_path --baselines gcn lgc 
